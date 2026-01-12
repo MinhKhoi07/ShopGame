@@ -12,9 +12,14 @@
         </h2>
         <p style="color: #9ca3af; margin: 8px 0 0 0;">{{ $user->email }}</p>
     </div>
-    <a href="{{ route('admin.chats') }}" class="btn btn-secondary">
-        <i class="fas fa-arrow-left"></i> Quay lại
-    </a>
+    <div style="display: flex; gap: 12px;">
+        <button onclick="window.location.reload()" class="btn btn-info" title="Tải lại tin nhắn">
+            <i class="fas fa-sync-alt"></i> Tải lại
+        </button>
+        <a href="{{ route('admin.chats') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Quay lại
+        </a>
+    </div>
 </div>
 
 <div class="chat-detail-container">
@@ -54,7 +59,7 @@
                     rows="3"
                     maxlength="1000"
                     required
-                    style="flex: 1; resize: vertical;"
+                    style="flex: 1; resize: vertical; color: #000000;"
                 ></textarea>
                 <button type="submit" class="btn btn-primary" style="min-width: 120px;">
                     <i class="fas fa-paper-plane"></i> Gửi
@@ -107,11 +112,11 @@
     }
 
     .message.from-user {
-        align-items: flex-end;
+        align-items: flex-start;
     }
 
     .message.from-admin {
-        align-items: flex-start;
+        align-items: flex-end;
     }
 
     .message-content {
@@ -123,16 +128,16 @@
     }
 
     .message.from-user .message-content {
-        background: #667eea;
-        color: white;
-        border-bottom-right-radius: 2px;
-    }
-
-    .message.from-admin .message-content {
         background: white;
         color: #1f2937;
         border: 1px solid #e5e7eb;
         border-bottom-left-radius: 2px;
+    }
+
+    .message.from-admin .message-content {
+        background: #667eea;
+        color: white;
+        border-bottom-right-radius: 2px;
     }
 
     .message-time {
@@ -180,10 +185,19 @@
     if (messagesContainer) {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
-
-    // Auto-reload messages every 5 seconds
-    setInterval(function() {
-        location.reload();
-    }, 5000);
 </script>
+
+@if(session('success'))
+<script>
+    // Hiển thị thông báo khi gửi tin nhắn thành công
+    setTimeout(() => {
+        const alert = document.querySelector('.alert-success');
+        if (alert) {
+            alert.style.transition = 'opacity 0.3s ease';
+            alert.style.opacity = '0';
+            setTimeout(() => alert.remove(), 300);
+        }
+    }, 3000);
+</script>
+@endif
 @endsection

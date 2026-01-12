@@ -15,7 +15,18 @@
                 <h3>Hỗ trợ khách hàng</h3>
                 <p class="text-sm text-gray-500">Gửi tin nhắn cho chúng tôi</p>
             </div>
-            <button id="chat-close" class="chat-close-btn">×</button>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                @auth
+                <button id="chat-refresh" class="chat-refresh-btn" title="Tải lại tin nhắn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                </button>
+                @endauth
+                <button id="chat-close" class="chat-close-btn">×</button>
+            </div>
         </div>
 
         <!-- Auth Check -->
@@ -27,12 +38,13 @@
             <div class="chat-messages" id="chat-messages-container">
                 <div class="chat-placeholder">
                     <p>Chào {{ Auth::user()->name }}! 👋</p>
-                    <p class="text-sm" style="margin-top: 8px;">Gửi tin nhắn để nhận hỗ trợ từ đội ngũ</p>
+                    <p class="text-sm" style="margin-top: 8px;">Gửi tin nhắn hỗ trợ cho chúng tôi</p>
+                    <p class="text-sm" style="margin-top: 4px; color: #6b7280;">Admin sẽ phản hồi khi nhận được tin nhắn</p>
                 </div>
             </div>
 
             <div class="chat-input-area">
-                <form id="chat-form" onsubmit="sendChatMessage(event)">
+                <form id="chat-form">
                     <div style="display: flex; gap: 8px;">
                         <input 
                             type="text" 
@@ -42,7 +54,7 @@
                             maxlength="1000"
                             required
                         >
-                        <button type="submit" class="chat-send-btn">Gửi</button>
+                        <button type="submit" class="chat-send-btn" id="chat-send-btn">Gửi</button>
                     </div>
                 </form>
             </div>
@@ -164,6 +176,29 @@
         justify-content: center;
     }
 
+    .chat-refresh-btn {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        cursor: pointer;
+        padding: 6px;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+
+    .chat-refresh-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    .chat-refresh-btn:active {
+        transform: rotate(180deg);
+    }
+
     .chat-login-message {
         padding: 20px;
         text-align: center;
@@ -180,7 +215,8 @@
         overflow-y: auto;
         padding: 16px;
         background: #f9fafb;
-        max-height: 300px;
+        min-height: 400px;
+        max-height: 450px;
     }
 
     .chat-placeholder {
@@ -234,6 +270,7 @@
         font-size: 14px;
         line-height: 1.4;
         word-wrap: break-word;
+        overflow-wrap: break-word;
     }
 
     .chat-message.from-user .chat-message-content {
@@ -330,6 +367,28 @@
             max-width: 85%;
         }
     }
+
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(100px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes slideOutRight {
+        from {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateX(100px);
+        }
+    }
 </style>
 
 <script>
@@ -337,6 +396,7 @@
         const chatBubbleToggle = document.getElementById('chat-bubble-toggle');
         const chatBox = document.getElementById('chat-box');
         const chatCloseBtn = document.getElementById('chat-close');
+        const chatRefreshBtn = document.getElementById('chat-refresh');
         const chatForm = document.getElementById('chat-form');
         const messagesContainer = document.getElementById('chat-messages-container');
 
@@ -351,8 +411,10 @@
         // Toggle chat box
         if (chatBubbleToggle) {
             chatBubbleToggle.addEventListener('click', function() {
-                chatBox.style.display = chatBox.style.display === 'none' ? 'flex' : 'none';
-                if (chatBox.style.display === 'flex') {
+                const isVisible = chatBox.style.display === 'flex';
+                chatBox.style.display = isVisible ? 'none' : 'flex';
+                if (!isVisible) {
+                    // Chỉ load tin nhắn khi mở chat
                     loadChatMessages();
                 }
             });
@@ -365,16 +427,28 @@
             });
         }
 
-        // Load messages on page load
-        loadChatMessages();
+        // Refresh messages
+        if (chatRefreshBtn) {
+            chatRefreshBtn.addEventListener('click', function() {
+                loadChatMessages();
+                showNotification('Đã tải lại tin nhắn', 'info');
+            });
+        }
 
-        // Poll for new messages every 3 seconds
-        setInterval(loadChatMessages, 3000);
         console.log('Chat widget initialized');
     });
 
+    let isSending = false; // Biến để ngăn gửi nhiều lần
+
     function sendChatMessage(event) {
         event.preventDefault();
+        
+        // Ngăn gửi nhiều lần
+        if (isSending) {
+            console.log('Already sending, ignoring duplicate request');
+            return;
+        }
+        
         const input = document.getElementById('chat-message-input');
         const message = input.value.trim();
 
@@ -383,12 +457,15 @@
             return;
         }
 
-        const btn = event.target.querySelector('button[type="submit"]');
+        const btn = document.getElementById('chat-send-btn');
         console.log('Sending message:', message);
-        console.log('Button:', btn);
         const originalText = btn.textContent;
+        
+        // Đánh dấu đang gửi
+        isSending = true;
         btn.disabled = true;
         btn.textContent = 'Đang gửi...';
+        
         // Dùng đường dẫn tương đối để tránh sai host (APP_URL) khi chạy artisan serve
         const apiUrl = '/api/messages';
         fetch(apiUrl, {
@@ -413,12 +490,17 @@
                 input.value = '';
                 btn.textContent = originalText;
                 btn.disabled = false;
+                isSending = false;
+                // Load lại tin nhắn sau khi gửi thành công
                 loadChatMessages();
+                // Hiển thị thông báo thành công
+                showNotification('Tin nhắn đã được gửi! Admin sẽ phản hồi sớm nhất có thể.', 'success');
             } else {
                                 console.error('API returned error:', data.error);
                 alert(data.error || 'Lỗi khi gửi tin nhắn');
                 btn.textContent = originalText;
                 btn.disabled = false;
+                isSending = false;
             }
         })
         .catch(error => {
@@ -427,6 +509,7 @@
             alert('Không thể gửi tin nhắn. Vui lòng thử lại!');
             btn.textContent = originalText;
             btn.disabled = false;
+            isSending = false;
         });
     }
 
@@ -444,6 +527,10 @@
 
                     // Update chat messages
                     if (hasMessages) {
+                        // Xóa tất cả nội dung cũ (bao gồm placeholder)
+                        messagesContainer.innerHTML = '';
+                        
+                        // Thêm tin nhắn mới
                         messagesContainer.innerHTML = data.messages.map(msg => `
                             <div class="chat-message ${msg.is_from_admin ? 'from-admin' : 'from-user'}">
                                 <div>
@@ -474,5 +561,31 @@
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = 'chat-notification ' + type;
+        notification.textContent = message;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'success' ? '#10b981' : '#3b82f6'};
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 10000;
+            animation: slideInRight 0.3s ease;
+            max-width: 300px;
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
     }
 </script>

@@ -8,9 +8,14 @@
 <div class="chat-list-section">
     <div class="chat-list-header">
         <h2 style="color: white; margin-bottom: 0;">
-            <i class="fas fa-comments"></i> Cuộc trò chuyện
+            <i class="fas fa-comments"></i> Quản lý Tin nhắn
         </h2>
-        <span class="chat-count" style="background: rgba(255,255,255,0.2); color: white;">{{ $conversations->count() }} cuộc trò chuyện</span>
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <button onclick="window.location.reload()" class="btn-reload" title="Tải lại danh sách">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <span class="chat-count" style="background: rgba(255,255,255,0.2); color: white;">{{ $conversations->count() }} cuộc trò chuyện</span>
+        </div>
     </div>
 
             @if($conversations->count() > 0)
@@ -138,6 +143,22 @@
     .btn-sm {
         padding: 6px 12px;
         font-size: 12px;
+    }
+
+    .btn-reload {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 14px;
+    }
+
+    .btn-reload:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: rotate(180deg);
     }
 </style>
 @endsection
